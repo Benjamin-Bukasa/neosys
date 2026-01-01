@@ -4,7 +4,8 @@ import cors from 'cors';
 
 
 //import routes
-
+import authRoutes from "./routes/authRoutes.js"
+import adminRoutes from "./routes/adminRoutes.js";
 
 //load environment variables
 dotenv.config();
@@ -22,6 +23,8 @@ app.use(express.urlencoded({ extended: true }));
 
 
 //routes
+app.use("/neosys/api/auth", authRoutes)
+app.use("/neosys/api/admin", adminRoutes);
 
 
 
