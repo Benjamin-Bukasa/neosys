@@ -3,7 +3,7 @@ import prisma from "../config/db.js";
 
 export const authMiddleware = async (req, res, next) => {
   try {
-    // 1️⃣ Récupération du token depuis cookie httpOnly
+    // Token depuis cookie httpOnly
     const token = req.cookies?.access_token;
 
     if (!token) {
@@ -12,43 +12,45 @@ export const authMiddleware = async (req, res, next) => {
       });
     }
 
-    // 2️⃣ Vérification JWT
+    // Vérification JWT
     const decoded = verifyToken(
       token,
       process.env.JWT_ACCESS_SECRET
     );
 
-    /**
-     * decoded = {
-     *   userId,
-     *   role,
-     *   iat,
-     *   exp
-     * }
-     */
 
-    // 3️⃣ (Option sécurité) Vérifier que l’utilisateur existe encore
-    const userExists = await prisma.user.findUnique({
+    // Vérifier l'utilisateur + isActive
+    const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
-      select: { id: true }
+      select: {
+        id: true,
+        role: true,
+        isActive: true,
+      },
     });
 
-    if (!userExists) {
+    if (!user) {
       return res.status(401).json({
         message: "User not found",
       });
     }
 
-    // 4️⃣ Injection utilisateur pour la suite
+    if (!user.isActive) {
+      return res.status(403).json({
+        message: "Account is blocked",
+      });
+    }
+
+    //Injecter l'utilisateur
     req.user = {
-      id: decoded.userId,
-      role: decoded.role,
+      id: user.id,
+      role: user.role,
     };
 
     next();
   } catch (error) {
     return res.status(401).json({
-      message: "Unauthorized: invalid or expired token",
+      message: "Invalid or expired token",
     });
   }
 };
